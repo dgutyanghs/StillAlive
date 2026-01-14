@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家属监控面板 - 子女端预览</title>
+    <style>
+        :root {
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --primary: #4169e1;
+            --safe: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f1c40f;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .header { text-align: center; margin-bottom: 40px; }
+        .header h2 { margin: 0; color: var(--primary); font-size: 1.5rem; }
+        
+        .status-box {
+            text-align: center;
+            padding: 40px 20px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            transition: all 0.4s ease;
+        }
+        .status-safe { background: #e8f5e9; border: 2px solid #a5d6a7; }
+        .status-danger { background: #ffebee; border: 2px solid #ef9a9a; animation: shake 0.5s ease-in-out infinite alternate; }
+        .status-waiting { background: #fffde7; border: 2px solid #fff59d; }
+
+        @keyframes shake {
+            from { transform: scale(1.02); }
+            to { transform: scale(0.98); }
+        }
+
+        .emoji { font-size: 80px; margin-bottom: 20px; display: block; }
+        .status-title { font-size: 26px; font-weight: 800; margin-bottom: 10px; }
+        .status-desc { color: var(--text-light); font-size: 17px; }
+
+        .details { border-top: 1px solid #f0f0f0; padding-top: 25px; margin-top: 25px; }
+        .detail-item { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .label { color: var(--text-light); font-weight: 500; }
+        .val { font-weight: 700; color: var(--text); }
+
+        .alert-bar {
+            background: var(--danger);
+            color: white;
+            padding: 18px;
+            border-radius: 15px;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .refresh-btn {
+            background: #eee;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            color: #666;
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .preview-badge {
+            position: fixed; top: 10px; right: 10px;
+            background: rgba(0,0,0,0.5); color: white;
+            padding: 5px 12px; border-radius: 20px; font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-badge">子女端页面预览</div>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h2>家长平安监控</h2>
+            </div>
+
+            <div id="statusBox" class="status-box status-waiting">
+                <span id="statusEmoji" class="emoji">⏰</span>
+                <div id="statusTitle" class="status-title">等待签到</div>
+                <div id="statusDesc" class="status-desc">今日尚未收到报平安信息</div>
+            </div>
+
+            <div id="details" class="details" style="display:none">
+                <div class="detail-item">
+                    <span class="label">签到日期</span>
+                    <span id="dateVal" class="val">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">签到时间</span>
+                    <span id="timeVal" class="val">-</span>
+                </div>
+                <div id="locRow" class="detail-item">
+                    <span class="label">地理位置</span>
+                    <span id="locVal" class="val">
+                        <a id="mapLink" href="#" target="_blank" style="color: var(--primary); text-decoration: none;">查看地图 &rarr;</a>
+                    </span>
+                </div>
+            </div>
+
+            <div id="alertBar" class="alert-bar" style="display:none">
+                <span>🚨</span> 延迟警报：请立即确认老人安全！
+            </div>
+            
+            <button class="refresh-btn" onclick="fetchStatus()">点击刷新状态</button>
+        </div>
+    </div>
+
+    <script>
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/check-status');
+                const data = await res.json();
+                updateUI(data);
+            } catch (e) {
+                // 模拟预览数据
+                const mockHour = new Date().getHours();
+                const mockData = {
+                    checkedIn: false,
+                    currentHour: mockHour,
+                    remindHour: 18,
+                    today: new Date().toLocaleDateString()
+                };
+                updateUI(mockData);
+            }
+        }
+
+        function updateUI(data) {
+            const box = document.getElementById('statusBox');
+            const emoji = document.getElementById('statusEmoji');
+            const title = document.getElementById('statusTitle');
+            const desc = document.getElementById('statusDesc');
+            const details = document.getElementById('details');
+            const alert = document.getElementById('alertBar');
+
+            if (data.checkedIn) {
+                box.className = "status-box status-safe";
+                emoji.innerText = "✅";
+                title.innerText = "今日已签到";
+                desc.innerText = "老人目前安全";
+                
+                details.style.display = "block";
+                document.getElementById('dateVal').innerText = data.today;
+                document.getElementById('timeVal').innerText = data.data.time.split(' ')[1];
+                
+                if (data.data.location) {
+                    document.getElementById('locRow').style.display = "flex";
+                    document.getElementById('mapLink').href = "https://uri.amap.com/marker?position=" + data.data.location.lng + "," + data.data.location.lat;
+                } else {
+                    document.getElementById('locRow').style.display = "none";
+                }
+                alert.style.display = "none";
+            } else {
+                const isLate = data.currentHour >= data.remindHour;
+                if (isLate) {
+                    box.className = "status-box status-danger";
+                    emoji.innerText = "⚠️";
+                    title.innerText = "异常：未签到";
+                    desc.innerText = "已超过 18:00 预设时间";
+                    alert.style.display = "flex";
+                    details.style.display = "none";
+                } else {
+                    box.className = "status-box status-waiting";
+                    emoji.innerText = "⏰";
+                    title.innerText = "等待签到";
+                    desc.innerText = "预计在 18:00 前完成";
+                    alert.style.display = "none";
+                    details.style.display = "none";
+                }
+            }
+        }
+
+        window.onload = fetchStatus;
+    </script>
+</body>
+</html>

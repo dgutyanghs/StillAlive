@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>平安签到 - 老人端预览</title>
+    <!-- 引入炫酷设计元素：毛玻璃、渐变 -->
+    <style>
+        :root {
+            --primary: #2ecc71;
+            --primary-dark: #27ae60;
+            --bg: #fdf6e3;
+            --text: #5c3d2e;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #fdf6e3 0%, #fae8d2 100%);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: var(--text);
+            overflow: hidden;
+        }
+        .glass-container {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 30px;
+            padding: 40px 20px;
+            text-align: center;
+            width: 85%;
+            max-width: 400px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+        .header { margin-bottom: 50px; }
+        .header h1 { font-size: 2.5rem; margin: 0; font-weight: 800; letter-spacing: -1px; }
+        .header p { font-size: 1.1rem; color: #8d7b68; margin-top: 10px; }
+        
+        #checkinBtn {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            border: 8px solid rgba(255, 255, 255, 0.6);
+            background: linear-gradient(145deg, #2ecc71, #27ae60);
+            color: white;
+            font-size: 2.2rem;
+            font-weight: bold;
+            box-shadow: 0 15px 35px rgba(46, 204, 113, 0.3), inset 0 0 15px rgba(255,255,255,0.2);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            margin: 0 auto;
+            position: relative;
+            outline: none;
+        }
+        #checkinBtn:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(46, 204, 113, 0.4); }
+        #checkinBtn:active { transform: scale(0.92); }
+        #checkinBtn:disabled {
+            background: #bdc3c7;
+            border-color: rgba(255,255,255,0.3);
+            box-shadow: none;
+            cursor: default;
+        }
+        #checkinBtn span { font-size: 0.9rem; margin-top: 12px; font-weight: 500; opacity: 0.9; }
+
+        .status-msg { margin-top: 40px; font-size: 1.2rem; font-weight: 600; min-height: 1.5em; transition: all 0.3s; }
+        .loc-info { font-size: 0.85rem; color: #a19181; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        
+        /* 预览标志 */
+        .preview-badge {
+            position: fixed; top: 10px; right: 10px;
+            background: rgba(0,0,0,0.5); color: white;
+            padding: 5px 12px; border-radius: 20px; font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-badge">老人端页面预览</div>
+    <div class="glass-container">
+        <div class="header">
+            <h1>家校平安</h1>
+            <p>告知家人您今天很安全</p>
+        </div>
+
+        <button id="checkinBtn" onclick="doCheckin()">
+            报平安
+            <span id="btnSub">点击签到</span>
+        </button>
+
+        <div id="statusMsg" class="status-msg"></div>
+        <div id="locStatus" class="loc-info">📍 正在锁定位置...</div>
+    </div>
+
+    <script>
+        let userLocation = null;
+
+        window.onload = () => {
+            // 预览模式，模拟逻辑
+            setTimeout(() => {
+                getLocation();
+            }, 1000);
+        };
+
+        function getLocation() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                        document.getElementById('locStatus').innerHTML = "<span>📍</span> 位置已就绪";
+                    },
+                    (err) => {
+                        document.getElementById('locStatus').innerHTML = "<span>⚠️</span> 无法定位，但不影响签到";
+                    }
+                );
+            } else {
+                document.getElementById('locStatus').innerHTML = "<span>⚠️</span> 环境不支持定位";
+            }
+        }
+
+        async function doCheckin() {
+            const btn = document.getElementById('checkinBtn');
+            const msg = document.getElementById('statusMsg');
+            const sub = document.getElementById('btnSub');
+            
+            btn.disabled = true;
+            msg.innerText = "发送中...";
+
+            // 实际部署时由 areyoualive.js 处理
+            try {
+                const res = await fetch('/api/checkin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location: userLocation })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    setAsCheckedIn(data.time);
+                    msg.style.color = "#27ae60";
+                    msg.innerText = "签到成功！家人已收到通知";
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (e) {
+                // 仅预览环境处理
+                setTimeout(() => {
+                    const time = new Date().toLocaleTimeString();
+                    setAsCheckedIn("2026-01-14 " + time);
+                    msg.style.color = "#27ae60";
+                    msg.innerText = "签到成功！(预览模式)";
+                }, 1000);
+            }
+        }
+
+        function setAsCheckedIn(time) {
+            const btn = document.getElementById('checkinBtn');
+            const sub = document.getElementById('btnSub');
+            btn.disabled = true;
+            btn.innerHTML = "已签到<span id='btnSub'>时间：" + time.split(' ')[1] + "</span>";
+            document.getElementById('statusMsg').innerText = "今日已向家人报平安";
+        }
+    </script>
+</body>
+</html>
