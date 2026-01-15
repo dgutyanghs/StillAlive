@@ -45,8 +45,20 @@ const CONFIG = {
 
 ## 📱 访问方式
 
--   **老人签到页**：`https://your-worker.workers.dev/`
--   **子女监控页**：`https://your-worker.workers.dev/child`
+-   **老人签到页**：`https://care.9527878.xyz//`
+-   **子女监控页**：`https://care.9527878.xyz/child`
+-  **youtube教程**: `https://youtu.be/9cuZcHm2JFY`
+
+-  **Curl 测试脚本**
+```
+curl -X POST api.resend.com -H "Authorization: Bearer resend-api-key" 
+	-H "Content-Type: application/json" 
+    -d '{"from": "Acme <your resend email>", 
+    	"to": ["your email"], 
+        "subject": "Hello World", "html": 
+        "<strong>It works!</strong>"}'
+```
+
 
 ## 💡 为什么叫这个名字？
 
